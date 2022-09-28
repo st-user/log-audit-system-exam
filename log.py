@@ -4,10 +4,28 @@ from collections import defaultdict
 
 
 class LogLine:
+    """
+    監視ログファイルに記録されるログの各行。
+
+    行フォーマット：
+      ＜確認日時＞,＜サーバアドレス＞,＜応答結果＞
+
+    確認日時: YYYYMMDDhhmmss
+    サーバアドレス: ネットワークプレフィックス長付きのIPv4アドレス
+    応答結果: pingの応答時間(ミリ秒)。タイムアウトした場合は"-"(ハイフン記号)
+
+    -------------- 例 -------------
+    20201019133124,10.20.30.1/16,2
+    20201019133125,10.20.30.2/16,1
+    -------------------------------
+
+    """
 
     def __init__(self, line):
         line_arr = line.split(',')
-        # TODO value error
+        if len(line_arr) < 3:
+            raise ValueError(f'ログのフォーマットが不正です: {line}')
+
         self.timestamp = datetime.datetime.strptime(
             line_arr[0].strip(), '%Y%m%d%H%M%S')
         self.server_ip = ipaddress.ip_interface(line_arr[1].strip())
