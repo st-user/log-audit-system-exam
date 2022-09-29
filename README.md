@@ -71,7 +71,7 @@ Windows環境の場合、パスの指定方法など適宜読み替えてくだ�
 ### 事前準備
 
 ```bash
-git clone ....
+git clone https://github.com/st-user/log-audit-system-exam.git
 python -m venv venv
 source ./venv/bin/activate
 ```
