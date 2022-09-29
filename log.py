@@ -47,6 +47,9 @@ class LogLine:
 
 
 class LogStats:
+    """
+    ログから抽出したサーバー毎の統計値
+    """
 
     def __init__(self):
         self.consecutive_failure_count = 0
@@ -55,6 +58,9 @@ class LogStats:
 
 
 class LogCollector:
+    """
+    ログを集約し、その集約結果に従って故障状態や過負荷状態の判定を行う機能を提供するクラス
+    """
 
     def __init__(self, last_m_count=10):
         self.stats_by_server = dict()
@@ -62,6 +68,10 @@ class LogCollector:
         self.last_m_count = last_m_count
 
     def collect_stats(self, log_line):
+        """
+        ログ行を統計値として集約する。
+        """
+
         server_id = log_line.server_ip.ip
 
         self.server_group[log_line.server_ip.network].add(log_line.server_ip.ip)
@@ -85,7 +95,12 @@ class LogCollector:
 
             stats.last_success_m_logs.append(log_line)
 
-    def check_overload(self, log_line, overload_threshold_millis=100, output_consumer=lambda o: print(o)):
+
+    def check_overload(self, log_line, overload_threshold_millis=1000, output_consumer=lambda o: print(o)):
+        """
+        'log_line'で与えらえたログが対象とするサーバーの現時点での過負荷状態を確認する
+        """
+
         server_id = log_line.server_ip.ip
         if server_id in self.stats_by_server:
             server_stats = self.stats_by_server[server_id]
@@ -102,7 +117,12 @@ class LogCollector:
                 )
                 output_consumer(f'{server_id},{start_timestamp},{end_timestamp}')
 
+
     def check_recent_failure(self, log_line, n=1, output_consumer=lambda o: print(o)):
+        """
+        'log_line'で与えらえたログが対象とするサーバーの現時点での故障期間を確認する
+        """
+
         if log_line.ping_interval != None:
             server_id = log_line.server_ip.ip
             if server_id in self.stats_by_server:
@@ -112,6 +132,10 @@ class LogCollector:
                     output_consumer(f'{server_id},{mean_time.seconds}')
     
     def check_recent_network_failure(self, log_line, n=1, output_consumer=lambda o: print(o)):
+        """
+        'log_line'で与えらえたログが対象とするサーバーが所属するネットワークの現時点での故障期間を確認する
+        """
+
         if log_line.ping_interval is None:
             return
 
