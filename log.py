@@ -74,7 +74,8 @@ class LogCollector:
 
         server_id = log_line.server_ip.ip
 
-        self.server_group[log_line.server_ip.network].add(log_line.server_ip.ip)
+        self.server_group[log_line.server_ip.network].add(
+            log_line.server_ip.ip)
 
         stats = None
         if server_id in self.stats_by_server:
@@ -95,42 +96,47 @@ class LogCollector:
 
             stats.last_success_m_logs.append(log_line)
 
-
     def check_overload(self, log_line, overload_threshold_millis=1000, output_consumer=lambda o: print(o)):
         """
         'log_line'で与えらえたログが対象とするサーバーの現時点での過負荷状態を確認する
         """
 
         server_id = log_line.server_ip.ip
-        if server_id in self.stats_by_server:
-            server_stats = self.stats_by_server[server_id]
-            if len(server_stats.last_success_m_logs) < self.last_m_count:
-                return
+        if server_id not in self.stats_by_server:
+            return
 
-            avg_response_time = sum(
-                [log.ping_interval for log in server_stats.last_success_m_logs]) / len(server_stats.last_success_m_logs)
+        server_stats = self.stats_by_server[server_id]
+        if len(server_stats.last_success_m_logs) < self.last_m_count:
+            return
 
-            if avg_response_time > overload_threshold_millis:
-                start_timestamp = server_stats.last_success_m_logs[0].format_timestamp(
-                )
-                end_timestamp = server_stats.last_success_m_logs[-1].format_timestamp(
-                )
-                output_consumer(f'{server_id},{start_timestamp},{end_timestamp}')
+        avg_response_time = sum(
+            [log.ping_interval for log in server_stats.last_success_m_logs]) / len(server_stats.last_success_m_logs)
 
+        if avg_response_time <= overload_threshold_millis:
+            return
+
+        start_timestamp = server_stats.last_success_m_logs[0].format_timestamp(
+        )
+        end_timestamp = server_stats.last_success_m_logs[-1].format_timestamp()
+        output_consumer(f'{server_id},{start_timestamp},{end_timestamp}')
 
     def check_recent_failure(self, log_line, n=1, output_consumer=lambda o: print(o)):
         """
         'log_line'で与えらえたログが対象とするサーバーの現時点での故障期間を確認する
         """
 
-        if log_line.ping_interval != None:
-            server_id = log_line.server_ip.ip
-            if server_id in self.stats_by_server:
-                stats = self.stats_by_server[server_id]
-                if stats.consecutive_failure_count >= n:
-                    mean_time = log_line.timestamp - stats.last_failure_timestamp
-                    output_consumer(f'{server_id},{mean_time.seconds}')
-    
+        if log_line.ping_interval is None:
+            return
+
+        server_id = log_line.server_ip.ip
+        if server_id not in self.stats_by_server:
+            return
+            
+        stats = self.stats_by_server[server_id]
+        if stats.consecutive_failure_count >= n:
+            mean_time = log_line.timestamp - stats.last_failure_timestamp
+            output_consumer(f'{server_id},{mean_time.seconds}')
+
     def check_recent_network_failure(self, log_line, n=1, output_consumer=lambda o: print(o)):
         """
         'log_line'で与えらえたログが対象とするサーバーが所属するネットワークの現時点での故障期間を確認する
@@ -153,12 +159,8 @@ class LogCollector:
 
         if len(failure_timestamps) != len(server_ips):
             return
-        
+
         failure_timestamps.sort()
 
         mean_time = log_line.timestamp - failure_timestamps[-1]
         output_consumer(f'{log_line.server_ip.network},{mean_time.seconds}')
-
-
-
-
